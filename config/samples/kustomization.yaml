@@ -1,0 +1,5 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- infrastructure_v1alpha3_tbmmachine.yaml
+- infrastructure_v1alpha3_tbmcluster.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
