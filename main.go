@@ -29,6 +29,8 @@ import (
 
 	infrastructurev1alpha3 "cluster-api-provider-tbm/api/v1alpha3"
 	"cluster-api-provider-tbm/controllers"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -41,6 +43,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(infrastructurev1alpha3.AddToScheme(scheme))
+
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
