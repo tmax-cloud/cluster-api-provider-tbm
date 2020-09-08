@@ -1,0 +1,88 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.3.0
+  creationTimestamp: null
+  name: tbmpools.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: TbmPool
+    listKind: TbmPoolList
+    plural: tbmpools
+    singular: tbmpool
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: tbm status
+      jsonPath: .metadata.labels.infrastructure\.cluster\.x-k8s\.io/tbm-isValid
+      name: IsValid
+      type: string
+    - description: tbm ip
+      jsonPath: .spec.ssh.ip
+      name: Ip
+      type: string
+    - description: Cluster to which this TbmCluster belongs
+      jsonPath: .metadata.labels.infrastructure\.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: role as k8s
+      jsonPath: .metadata.labels.infrastructure\.cluster\.x-k8s\.io/cluster-role
+      name: Role
+      type: string
+    name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: TbmPool is the Schema for the tbmpools API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TbmPoolSpec defines the desired state of TbmPool
+            properties:
+              ssh:
+                properties:
+                  id:
+                    type: string
+                  ip:
+                    type: string
+                  pw:
+                    type: string
+                required:
+                - id
+                - ip
+                - pw
+                type: object
+            required:
+            - ssh
+            type: object
+          status:
+            description: TbmPoolStatus defines the observed state of TbmPool
+            properties:
+              Error:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

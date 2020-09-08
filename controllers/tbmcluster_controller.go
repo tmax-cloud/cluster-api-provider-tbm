@@ -31,6 +31,8 @@ import (
 
 	infrav1 "cluster-api-provider-tbm/api/v1alpha3"
 
+	infraUtil "cluster-api-provider-tbm/controllers/util"
+
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -50,10 +52,13 @@ type TbmClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=tbmclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=tbmclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=tbmpools,verbs=get;list;watch;create;update;patch;
+
+var log logr.Logger
 
 func (r *TbmClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log := r.Log.WithValues("namespace", req.Namespace, "tbmCluster", req.Name)
+	log = r.Log.WithValues("namespace", req.Namespace, "tbmCluster", req.Name)
 
 	// Fetch the TbmCluster instance
 	tbmCluster := &infrav1.TbmCluster{}
@@ -105,12 +110,22 @@ func (r *TbmClusterReconciler) reconcileNormal(oldTbmCluster *infrav1.TbmCluster
 		newTbmCluster.Status = infrav1.TbmClusterStatus{}
 	}
 
+	if newTbmCluster.Status.Ready {
+		log.Info("apiEndpoint already exists")
+		return reconcile.Result{}, nil
+	}
+
 	// If the TbmCluster doesn't have our finalizer, add it.
 	//	controllerutil.AddFinalizer(oldTbmCluster, infrav1.ClusterFinalizer)
 
 	//logic here to prepare cluster
+	apiEndpoint := r.getAPIEndpointfromTbmPool(oldTbmCluster)
+	if apiEndpoint == "" {
+		log.Info("there is no proper tmb in tbmPool. Wait until proper tbm is appeared")
+		return reconcile.Result{}, nil
+	}
 	newTbmCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
-		Host: "none",
+		Host: apiEndpoint,
 		Port: 6443,
 	}
 
@@ -127,9 +142,33 @@ func (r *TbmClusterReconciler) reconcileNormal(oldTbmCluster *infrav1.TbmCluster
 	return reconcile.Result{}, nil
 }
 
+func (r *TbmClusterReconciler) getAPIEndpointfromTbmPool(tbmCluster *infrav1.TbmCluster) string {
+	tbmPoolList := &infrav1.TbmPoolList{}
+
+	r.List(context.TODO(), tbmPoolList)
+	listOptions := []client.ListOption{
+		client.MatchingLabels(map[string]string{infraUtil.LabelValid: "true"}),
+	}
+	r.List(context.TODO(), tbmPoolList, listOptions...)
+
+	if &tbmPoolList.Items[0] == nil {
+		return ""
+	}
+
+	oldTbmPool := &tbmPoolList.Items[0]
+	newTbmPool := oldTbmPool.DeepCopy()
+
+	newTbmPool.Labels[infraUtil.LabelClusterRole] = infraUtil.LabelClusterRoleMaster
+	newTbmPool.Labels[infraUtil.LabelClusterName] = tbmCluster.Name + infraUtil.LabelClusterNameProvisioning
+
+	r.Patch(context.TODO(), newTbmPool, client.MergeFrom(oldTbmPool))
+
+	return newTbmPool.Spec.SSH.IP
+}
+
 func (r *TbmClusterReconciler) requeueTbmClusterForUnpausedCluster(o handler.MapObject) []ctrl.Request {
 	c := o.Object.(*clusterv1.Cluster)
-	log := r.Log.WithValues("objectMapper", "clusterToAWSCluster", "namespace", c.Namespace, "cluster", c.Name)
+	log := r.Log.WithValues("objectMapper", "clusterToTbmCluster", "namespace", c.Namespace, "cluster", c.Name)
 
 	// Don't handle deleted clusters
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
