@@ -3,4 +3,5 @@ resources:
 - infrastructure_v1alpha3_tbmmachine.yaml
 - infrastructure_v1alpha3_tbmcluster.yaml
 - infrastructure_v1alpha3_tbmpool.yaml
+- infrastructure_v1alpha3_tbmmachinetemplate.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

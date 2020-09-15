@@ -145,7 +145,6 @@ func (r *TbmClusterReconciler) reconcileNormal(oldTbmCluster *infrav1.TbmCluster
 func (r *TbmClusterReconciler) getAPIEndpointfromTbmPool(tbmCluster *infrav1.TbmCluster) string {
 	tbmPoolList := &infrav1.TbmPoolList{}
 
-	r.List(context.TODO(), tbmPoolList)
 	listOptions := []client.ListOption{
 		client.MatchingLabels(map[string]string{infraUtil.LabelValid: "true"}),
 	}
@@ -160,6 +159,9 @@ func (r *TbmClusterReconciler) getAPIEndpointfromTbmPool(tbmCluster *infrav1.Tbm
 
 	newTbmPool.Labels[infraUtil.LabelClusterRole] = infraUtil.LabelClusterRoleMaster
 	newTbmPool.Labels[infraUtil.LabelClusterName] = tbmCluster.Name + infraUtil.LabelClusterNameProvisioning
+
+	log.Info("before tbmPool : " + oldTbmPool.Labels[infraUtil.LabelClusterRole])
+	log.Info("after tbmPool : " + newTbmPool.Labels[infraUtil.LabelClusterRole])
 
 	r.Patch(context.TODO(), newTbmPool, client.MergeFrom(oldTbmPool))
 
